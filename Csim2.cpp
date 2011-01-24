@@ -40,12 +40,12 @@ int main(int argc, char* argv[])
 	cout << fixed << setprecision(1);
 
 	// one RSU every 1km
-	int nRSU = (g_length)/g_rsuDensity;
+	int nRSU = (int)(g_length)/g_rsuDensity;
 
 	// simulation time from time to fill road plus enough to get message across
-	g_simEndTime = (int)(g_length/g_speed)*1000*1.10;	// ten percent more
-	g_simEndTime += 80*(g_length); 	// conservative 80 seconds per kilometer [s/km]*[m] = ms
-	g_simEndTime *= (0.0039/g_lambda);	// factor density
+	g_simEndTime = (int)( (g_length/g_speed)*1000*1.10 );	// ten percent more
+	g_simEndTime += (int)(80*g_length); 	// conservative 80 seconds per kilometer [s/km]*[m] = ms
+	g_simEndTime *= (int)(0.0039/g_lambda);	// factor density
 
 	// Random variable init
 	boost::mt19937 rng(g_seed);
@@ -58,7 +58,7 @@ int main(int argc, char* argv[])
 		// now call unifgen() to get an int
 
 	// Packet start time must be enough for the road to fill
-	int packetStart = ((g_length-g_margin)/5000)*200*1000;
+	int packetStart = (int)( ((g_length-g_margin)/5000)*200*1000 );
 
 
 	// Initial vehicle, RSU, packet setup
@@ -94,8 +94,8 @@ int main(int argc, char* argv[])
 			int accum = 0;
 			while(accum < g_simEndTime) // fill event list with enough events
 			{
-				int expvalue = expgen();	// get exponential value
-				accum+= (expvalue<5*(1000/(g_lambda*g_speed))) ? expvalue : 5*(1000/(g_lambda*g_speed));	// crop expgen() to a maximum bound
+				int expvalue = (int)expgen();	// get exponential value
+				accum+= (expvalue<5*(1000/(g_lambda*g_speed))) ? expvalue : (int)(5*(1000/(g_lambda*g_speed)) );	// crop expgen() to a maximum bound
 				simEvent eventWestVehicle ('V', accum, 0.0, 'W', ++g_vID);	// type, time, position, direction, vID
 				eventList.push_back(eventWestVehicle);
 			}
@@ -105,8 +105,8 @@ int main(int argc, char* argv[])
 			int accum = 0;
 			while(accum < g_simEndTime) // fill event list with enough events
 			{
-				int expvalue = expgen();	// get exponential value
-				accum+=(expvalue<5*(1000/(g_lambda*g_speed))) ? expvalue : 5*(1000/(g_lambda*g_speed));
+				int expvalue = (int)expgen();	// get exponential value
+				accum+=(expvalue<5*(1000/(g_lambda*g_speed))) ? expvalue : (int)(5*(1000/(g_lambda*g_speed)) );
 				simEvent eventEastVehicle ('V', accum, g_length, 'E', ++g_vID);	// type, time, position, direction, vID
 				eventList.push_back(eventEastVehicle);
 			}
