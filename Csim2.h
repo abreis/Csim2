@@ -28,11 +28,11 @@ unsigned int g_rsuDensity=1000;		// meters per RSU
 
 class VanetVehicle {
 public:
-	int vehicleID;
+	unsigned int vehicleID;
 	float position;
 	char direction;
 	vector<int> packetList; 	// array of packets
-	VanetVehicle(int vid, char dir, float pos) {vehicleID=vid; direction=dir; position=pos;}
+	VanetVehicle(unsigned int vid, char dir, float pos) {vehicleID=vid; direction=dir; position=pos;}
 	VanetVehicle(){vehicleID=0; position=0; direction='F';}
 };
 
@@ -52,17 +52,17 @@ class reHealingTime {
 public:
 	char type;		// 'B' for best, 'W' for worst
 	int startTime;
-	int startVID;
-	int endVID;
+	unsigned int startVID;
+	unsigned int endVID;
 	int delay;
 	reHealingTime(char ty, int st, int sVID, int eVID) {type=ty; startTime=st; startVID=sVID; endVID=eVID; delay=INT_MIN;}
 };
 
 void AdvanceVehicles(list<VanetVehicle> *Vehicles, unsigned int delta);
-void AddPacket (list<VanetVehicle> *Vehicles, int vehicleID, int packetID);
-void BroadcastPacket(list<VanetVehicle> *Vehicles, int srcVehicleID, int packetID, bool needsSort);
+void AddPacket (list<VanetVehicle> *Vehicles, unsigned int vehicleID, int packetID);
+void BroadcastPacket(list<VanetVehicle> *Vehicles, unsigned int srcVehicleID, int packetID, bool needsSort);
 void ReBroadcastPackets(list<VanetVehicle> *Vehicles);
-void DoStatistics(list<VanetVehicle> *Vehicles, int srcVehicleID, int packetID);
+void DoStatistics(list<VanetVehicle> *Vehicles, unsigned int srcVehicleID, int packetID);
 // class sorting functions
 bool eventCompare (simEvent event1, simEvent event2);
 bool vehiclePosCompare (VanetVehicle veh1, VanetVehicle veh2);

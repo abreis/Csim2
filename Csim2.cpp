@@ -9,12 +9,14 @@ using namespace std;
  *		(add a trigger at the beginning of AddPacket, conditional on VID)
  *
  */
+// global variable definition	// TODO could Vehicles and eventList move here?
+list<reHealingTime> statList;	// TODO this needs to be global
+
 
 int main(int argc, char* argv[])
 {
 	list<VanetVehicle> Vehicles;
 	list<simEvent> eventList;
-	list<reHealingTime> statList;	// TODO this needs to be global
 
 	// get lambda from CLI
 	if(argc>=4) g_lambda=atof(argv[3]);
@@ -152,14 +154,14 @@ int main(int argc, char* argv[])
 					{
 						case 'V':
 						{
-							VanetVehicle tempVeh(tempEvent.vehicleID, tempEvent.direction, tempEvent.position, false);	// vID, dir, pos, isRSU
+							VanetVehicle tempVeh(tempEvent.vehicleID, tempEvent.direction, tempEvent.position);	// vID, dir, pos, isRSU
 							Vehicles.push_back(tempVeh);
 							cout << "LOG " << ((float)g_simTime)/1000.0 << " V " << tempEvent.vehicleID << ' ' << tempEvent.position << ' ' << tempEvent.direction << '\n';
 							break;
 						}
 						case 'R':
 						{
-							VanetVehicle tempRSU(tempEvent.vehicleID, 'R', tempEvent.position, true);	// vID, dir, pos, isRSU
+							VanetVehicle tempRSU(tempEvent.vehicleID, 'R', tempEvent.position);	// vID, dir, pos, isRSU
 							Vehicles.push_back(tempRSU);
 							cout << "LOG " << ((float)g_simTime)/1000.0 << " R " << tempEvent.vehicleID << ' ' << tempEvent.position << '\n';
 							break;
@@ -202,7 +204,7 @@ void AdvanceVehicles(list<VanetVehicle> *Vehicles, unsigned int delta)
     }
 }
 
-void AddPacket (list<VanetVehicle> *Vehicles, int vehicleID, int packetID)
+void AddPacket (list<VanetVehicle> *Vehicles, unsigned int vehicleID, int packetID)
 {
 	// move iter to desired vehicle ID
 	list<VanetVehicle>::iterator iter = Vehicles->begin();
@@ -233,7 +235,7 @@ void AddPacket (list<VanetVehicle> *Vehicles, int vehicleID, int packetID)
     }
 }
 
-void BroadcastPacket(list<VanetVehicle> *Vehicles, int srcVehicleID, int packetID, bool needsSort)
+void BroadcastPacket(list<VanetVehicle> *Vehicles, unsigned int srcVehicleID, int packetID, bool needsSort)
 {
 	// sort list of vehicles
 	if(needsSort) Vehicles->sort(vehiclePosCompare);
@@ -290,11 +292,13 @@ void ReBroadcastPackets(list<VanetVehicle> *Vehicles)
     }
 }
 
-void DoStatistics(list<VanetVehicle> *Vehicles, int srcVehicleID, int packetID)
+void DoStatistics(list<VanetVehicle> *Vehicles, unsigned int srcVehicleID, int packetID)
 {
 	// get our vehicle
-	list<VanetVehicle>::iterator iter = Vehicles->begin();
-	while( iter->vehicleID != vehicleID ) iter++;
+	list<VanetVehicle>::iterator iterVolatile = Vehicles->begin();
+	while( iterVolatile->vehicleID != srcVehicleID ) iterVolatile++;
+	// const-ify the iterator to make sure no mess occurs down the road
+	const list<VanetVehicle>::iterator iter = iterVolatile;
 
 	// 1st step: see if the vehicle is 'W' and is disconnected from the next vehicle
 	{
@@ -307,10 +311,11 @@ void DoStatistics(list<VanetVehicle> *Vehicles, int srcVehicleID, int packetID)
     	{
     		// verify if it is last vehicle in cluster
     		bool isLastVehicle = true;
+
     		{	// locate backward
 				list<VanetVehicle>::iterator iterBW = iter;
 				if( iterBW != Vehicles->begin()) iterBW--;	// sanity check
-				while( iterBW->position >= srcPosition-250 && iterBW != Vehicles->begin() )
+				while( iterBW->position >= iter->position-250 && iterBW != Vehicles->begin() )
 				{
 					if(iterBW->direction == 'W')
 						{isLastVehicle=false; break;}	// found a vehicle
@@ -324,7 +329,7 @@ void DoStatistics(list<VanetVehicle> *Vehicles, int srcVehicleID, int packetID)
 				// TODO
 
 
-
+				// TODO add logging and commit
 
     		}	// END isLastVehicle
     	}	// END dir=W & pos<startVehPos
