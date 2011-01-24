@@ -24,7 +24,7 @@ unsigned int g_vID=0;	// global vehicle ID counter
 unsigned int g_PacketStartVID=0;	// ID of vehicle that generates the packet
 unsigned int g_PacketEndVID=0;		// ID of destination vehicle
 unsigned int g_seed=1;				// RV seed
-unsigned int g_rsuDensity=1000;		// meters per RSU
+unsigned int g_rsuDensity=0;		// meters per RSU
 
 class VanetVehicle {
 public:

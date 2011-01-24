@@ -10,6 +10,8 @@ int main(int argc, char* argv[])
 	// list of events is local to the main loop
 	list<simEvent> eventList;
 
+	// get RSU density from CLI
+	if(argc>=5) g_rsuDensity=atoi(argv[4]);
 	// get lambda from CLI
 	if(argc>=4) g_lambda=atof(argv[3]);
 	// highway length from CLI
@@ -30,9 +32,6 @@ int main(int argc, char* argv[])
 			'\n';
 
 	cout << fixed << setprecision(1);
-
-	// one RSU every 1km
-	int nRSU = (int)(g_length)/g_rsuDensity;
 
 	// simulation time from time to fill road plus enough to get message across
 	g_simEndTime = (int)( (g_length/g_speed)*1000*1.10 );	// ten percent more
@@ -72,10 +71,16 @@ int main(int argc, char* argv[])
 		cout << "\tFirst RSU pos \t" << startingRSUpos << '\n';
 
 		// place RSUs
-		for(int i=0; i<nRSU; i++)
+		if(g_rsuDensity!=0)
 		{
-			simEvent eventRSU ('R', 0, startingRSUpos+(float)i*g_rsuDensity, 'R', ++g_vID);	// type, time, position, direction, vID
-			eventList.push_back(eventRSU);
+			// one RSU every 1km
+			int nRSU = (int)(g_length)/g_rsuDensity;
+			// schedule RSU placement event
+			for(int i=0; i<nRSU; i++)
+			{
+				simEvent eventRSU ('R', 0, startingRSUpos+(float)i*g_rsuDensity, 'R', ++g_vID);	// type, time, position, direction, vID
+				eventList.push_back(eventRSU);
+			}
 		}
 	}
 
@@ -336,15 +341,47 @@ void DoStatistics(unsigned int srcVehicleID, int packetID)
     		// if this vehicle is disconnected, the delay measures start here
     		if(isLastVehicle)
     		{
-				// TODO
     			// Determine type (best/worst)
-    			char caseType='F';
+    			char caseType='W';	// default is no opposite-lane vehicle, thus worst
 
+    			{
+					list<VanetVehicle>::iterator iterFW, iterBW = iter;
+					// locate forward
+					if( iterFW != Vehicles.end()) iterFW++;
+					while( iterFW->position <= iter->position+250 && iterFW != Vehicles.end() )
+					{
+						if( (iterFW->direction=='E') )
+							{ caseType = 'B'; break; }
+						iterFW++;
+					}
+
+					// locate backward
+					if(caseType=='W')	// no need to locate backward if we already found one forward
+					{
+						if( iterBW != Vehicles.begin()) iterBW--;
+						while( iterBW->position >= iter->position-250 && iterBW != Vehicles.begin() )
+						{
+							if( (iterFW->direction=='E') )
+								{ caseType = 'B'; break; }
+							iterBW--;
+						}
+					}
+					delete &iterFW; delete &iterBW;
+				}
 
     			// Determine end vehicle for this case
     			unsigned int endVID=0;
+    			{
+    				list<VanetVehicle>::iterator iterMovable = iter;	// get a mutable iterator
+    				if( iterMovable != Vehicles.begin()) iterMovable--;	// sanity check
+    				while( iterMovable != Vehicles.begin() )
+    				{
+    					if(iterMovable->direction=='W')
+    						{ endVID=iterMovable->vehicleID; break; }
+    				}
+    			}
 
-				// TODO add logging and commit
+				// add logging and commit
     			reHealingTime newCase(caseType, g_simTime, iter->vehicleID, endVID); // type, start time, startVID, endVID
 
     		}	// END isLastVehicle
@@ -355,8 +392,7 @@ void DoStatistics(unsigned int srcVehicleID, int packetID)
 	// Finally: if this is the last vehicle, print logs and die
 	if(srcVehicleID == g_PacketEndVID)
 	{
-		// TODO
-		// PrintStatistics()
+		PrintStatistics();
 		exit(1);
 	}
 
