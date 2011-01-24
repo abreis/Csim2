@@ -52,10 +52,10 @@ class reHealingTime {
 public:
 	char type;		// 'B' for best, 'W' for worst
 	int startTime;
+	int endTime;
 	unsigned int startVID;
 	unsigned int endVID;
-	int delay;
-	reHealingTime(char ty, int st, int sVID, int eVID) {type=ty; startTime=st; startVID=sVID; endVID=eVID; delay=INT_MIN;}
+	reHealingTime(char ty, int st, int sVID, int eVID) {type=ty; startTime=st; startVID=sVID; endVID=eVID; endTime=INT_MIN;}
 };
 
 void AdvanceVehicles(unsigned int delta);
@@ -63,6 +63,8 @@ void AddPacket (unsigned int vehicleID, int packetID);
 void BroadcastPacket(unsigned int srcVehicleID, int packetID, bool needsSort);
 void ReBroadcastPackets(void);
 void DoStatistics(unsigned int srcVehicleID, int packetID);
+void PrintStatistics(void);
+
 // class sorting functions
 bool eventCompare (simEvent event1, simEvent event2);
 bool vehiclePosCompare (VanetVehicle veh1, VanetVehicle veh2);

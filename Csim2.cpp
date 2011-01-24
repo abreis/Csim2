@@ -295,6 +295,14 @@ void DoStatistics(unsigned int srcVehicleID, int packetID)
 	 *		(add a trigger at the beginning of AddPacket, conditional on VID)
 	 */
 
+	// regardless of this being a special case, we check here if this vehicle is part of an ongoing special case
+	{
+		list<reHealingTime>::iterator lastStat = statList.end();
+		if(lastStat->endTime<0) // there is a pending stat
+			if(srcVehicleID==lastStat->endVID)
+				lastStat->endTime=g_simTime;
+	}
+
 	// get our vehicle
 	list<VanetVehicle>::iterator iterVolatile = Vehicles.begin();
 	while( iterVolatile->vehicleID != srcVehicleID ) iterVolatile++;
@@ -322,15 +330,22 @@ void DoStatistics(unsigned int srcVehicleID, int packetID)
 						{isLastVehicle=false; break;}	// found a vehicle
 					iterBW--;	// did not find a vehicle, move
 				}
+				delete &iterBW;
     		}
 
     		// if this vehicle is disconnected, the delay measures start here
     		if(isLastVehicle)
     		{
 				// TODO
+    			// Determine type (best/worst)
+    			char caseType='F';
 
+
+    			// Determine end vehicle for this case
+    			unsigned int endVID=0;
 
 				// TODO add logging and commit
+    			reHealingTime newCase(caseType, g_simTime, iter->vehicleID, endVID); // type, start time, startVID, endVID
 
     		}	// END isLastVehicle
     	}	// END dir=W & pos<startVehPos
@@ -344,6 +359,17 @@ void DoStatistics(unsigned int srcVehicleID, int packetID)
 		// PrintStatistics()
 		exit(1);
 	}
+
+}
+
+void PrintStatistics(void)
+{
+	// uncomment this
+//	for( list<reHealingTime>::iterator itTr = statList.begin(); itTr != statList.end(); ++itTr )
+//	{
+//		// show all best-cases, worst cases
+//		// sum all re-healing times and print
+//	}
 
 }
 
