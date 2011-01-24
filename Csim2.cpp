@@ -291,21 +291,12 @@ void ReBroadcastPackets(void)
 
 void DoStatistics(unsigned int srcVehicleID, int packetID)
 {
-
-	/*
-	 * TODO:
-	 * - store re-healing times in simulation
-	 * V- vector array w/ type(best,worst) srcVID dstVID rehealing
-	 * -- sum all times at the end and match against actual simEndTime-simStartTime(packet 1)
-	 *		(add a trigger at the beginning of AddPacket, conditional on VID)
-	 */
-
 	// regardless of this being a special case, we check here if this vehicle is part of an ongoing special case
 	{
 		list<reHealingTime>::iterator lastStat = statList.end();
 		if(lastStat->endTime<0) // there is a pending stat
 			if(srcVehicleID==lastStat->endVID)
-				lastStat->endTime=g_simTime;
+				lastStat->endTime=g_simTime;	// complete the stat
 	}
 
 	// get our vehicle
@@ -400,12 +391,36 @@ void DoStatistics(unsigned int srcVehicleID, int packetID)
 
 void PrintStatistics(void)
 {
-	// uncomment this
-//	for( list<reHealingTime>::iterator itTr = statList.begin(); itTr != statList.end(); ++itTr )
-//	{
-//		// show all best-cases, worst cases
-//		// sum all re-healing times and print
-//	}
+	// go through the list of stats, print all, average and sum
+	for( list<reHealingTime>::iterator itTr = statList.begin(); itTr != statList.end(); ++itTr )
+	{
+		// show all best-cases, worst cases
+		cout << "INFO"
+				<<" case " << ( (itTr->type=='B')?"best":"worst" )
+				<< " startVID " << itTr->startVID
+				<< " endVID " << itTr->endVID
+				<< " startTime " << itTr->startTime
+				<< " endTime " << itTr->endTime
+				<< " delay " << (itTr->endTime - itTr->startTime)
+				<< '\n';
+	}
+
+	// sum all re-healing times and print
+	unsigned int totalBest=0, totalWorst=0, bestCount=0, worstCount=0;
+	for( list<reHealingTime>::iterator itTr = statList.begin(); itTr != statList.end(); ++itTr )
+	{
+		if(itTr->type=='B')
+			{ totalBest+=(itTr->endTime - itTr->startTime); bestCount++; }
+		else
+			{ totalWorst+=(itTr->endTime - itTr->startTime); worstCount++; }
+	}
+
+	cout
+		<< "INFO best count " << bestCount << '\n'
+		<< "INFO worst count " << worstCount << '\n'
+		<< "INFO total best " << totalBest << '\n'
+		<< "INFO total worst " << totalWorst << '\n'
+		<< "INFO total rehealing " << totalBest+totalWorst << '\n';
 
 }
 
