@@ -58,11 +58,11 @@ public:
 	reHealingTime(char ty, int st, int sVID, int eVID) {type=ty; startTime=st; startVID=sVID; endVID=eVID; delay=INT_MIN;}
 };
 
-void AdvanceVehicles(list<VanetVehicle> *Vehicles, unsigned int delta);
-void AddPacket (list<VanetVehicle> *Vehicles, unsigned int vehicleID, int packetID);
-void BroadcastPacket(list<VanetVehicle> *Vehicles, unsigned int srcVehicleID, int packetID, bool needsSort);
-void ReBroadcastPackets(list<VanetVehicle> *Vehicles);
-void DoStatistics(list<VanetVehicle> *Vehicles, unsigned int srcVehicleID, int packetID);
+void AdvanceVehicles(unsigned int delta);
+void AddPacket (unsigned int vehicleID, int packetID);
+void BroadcastPacket(unsigned int srcVehicleID, int packetID, bool needsSort);
+void ReBroadcastPackets(void);
+void DoStatistics(unsigned int srcVehicleID, int packetID);
 // class sorting functions
 bool eventCompare (simEvent event1, simEvent event2);
 bool vehiclePosCompare (VanetVehicle veh1, VanetVehicle veh2);
