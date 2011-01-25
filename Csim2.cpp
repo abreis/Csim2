@@ -10,6 +10,10 @@ int main(int argc, char* argv[])
 	// list of events is local to the main loop
 	list<simEvent> eventList;
 
+	// usage info
+	if(argc==1)
+		{ cout << "usage: " << argv[0] << " seed [length] [lambda] [rsu density]" << endl; exit(1); }
+
 	// get RSU density from CLI
 	if(argc>=5) g_rsuDensity=atoi(argv[4]);
 	// get lambda from CLI
@@ -19,6 +23,14 @@ int main(int argc, char* argv[])
 	// random variable seed from CLI
 	if(argc>=2) g_seed = atoi(argv[1]);
 
+	// simulation time from time to fill road plus enough to get message across
+	g_simEndTime = (int)( (g_length/g_speed)*1000*1.10 );	// ten percent more
+	g_simEndTime += (int)(80*g_length); 	// conservative 80 seconds per kilometer [s/km]*[m] = ms
+	g_simEndTime *= (int)(0.0039/g_lambda);	// factor density
+
+	// Packet start time must be enough for the road to fill
+	int packetStart = (int)( ((g_length-g_margin)/5000)*200*1000 );
+
 	cout << fixed << setprecision(4);
 
 	cout << "Simulation Start" << '\n';
@@ -27,16 +39,12 @@ int main(int argc, char* argv[])
 			"\n\tRange \t" << g_rrange <<
 			"\n\tLambda \t" << g_lambda <<
 			"\n\tStep \t" << g_step <<
+			"\n\tStart \t" << packetStart <<
 			"\n\tEnd \t" << g_simEndTime <<
 			"\n\tSeed \t" << g_seed <<
 			'\n';
 
 	cout << fixed << setprecision(1);
-
-	// simulation time from time to fill road plus enough to get message across
-	g_simEndTime = (int)( (g_length/g_speed)*1000*1.10 );	// ten percent more
-	g_simEndTime += (int)(80*g_length); 	// conservative 80 seconds per kilometer [s/km]*[m] = ms
-	g_simEndTime *= (int)(0.0039/g_lambda);	// factor density
 
 	// Random variable init
 	boost::mt19937 rng(g_seed);
@@ -47,9 +55,6 @@ int main(int argc, char* argv[])
 	boost::uniform_smallint<int> unif(0, g_rsuDensity);
 	boost::variate_generator< boost::mt19937, boost::uniform_smallint<int> > unifgen(rng, unif);
 		// now call unifgen() to get an int
-
-	// Packet start time must be enough for the road to fill
-	int packetStart = (int)( ((g_length-g_margin)/5000)*200*1000 );
 
 
 	// Initial vehicle, RSU, packet setup
@@ -291,6 +296,13 @@ void ReBroadcastPackets(void)
 
 void DoStatistics(unsigned int srcVehicleID, int packetID)
 {
+	// if this is the last vehicle, print logs and die
+	if(srcVehicleID == g_PacketEndVID)
+	{
+//		PrintStatistics();
+		exit(1);
+	}
+
 	// regardless of this being a special case, we check here if this vehicle is part of an ongoing special case
 	{
 		list<reHealingTime>::iterator lastStat = statList.end();
@@ -326,7 +338,6 @@ void DoStatistics(unsigned int srcVehicleID, int packetID)
 						{isLastVehicle=false; break;}	// found a vehicle
 					iterBW--;	// did not find a vehicle, move
 				}
-				delete &iterBW;
     		}
 
     		// if this vehicle is disconnected, the delay measures start here
@@ -336,7 +347,7 @@ void DoStatistics(unsigned int srcVehicleID, int packetID)
     			char caseType='W';	// default is no opposite-lane vehicle, thus worst
 
     			{
-					list<VanetVehicle>::iterator iterFW, iterBW = iter;
+					list<VanetVehicle>::iterator iterFW = iter, iterBW = iter;
 					// locate forward
 					if( iterFW != Vehicles.end()) iterFW++;
 					while( iterFW->position <= iter->position+250 && iterFW != Vehicles.end() )
@@ -357,7 +368,6 @@ void DoStatistics(unsigned int srcVehicleID, int packetID)
 							iterBW--;
 						}
 					}
-					delete &iterFW; delete &iterBW;
 				}
 
     			// Determine end vehicle for this case
@@ -369,6 +379,7 @@ void DoStatistics(unsigned int srcVehicleID, int packetID)
     				{
     					if(iterMovable->direction=='W')
     						{ endVID=iterMovable->vehicleID; break; }
+    					iterMovable++;
     				}
     			}
 
@@ -378,15 +389,6 @@ void DoStatistics(unsigned int srcVehicleID, int packetID)
     		}	// END isLastVehicle
     	}	// END dir=W & pos<startVehPos
 	}
-
-
-	// Finally: if this is the last vehicle, print logs and die
-	if(srcVehicleID == g_PacketEndVID)
-	{
-		PrintStatistics();
-		exit(1);
-	}
-
 }
 
 void PrintStatistics(void)
