@@ -26,7 +26,7 @@ int main(int argc, char* argv[])
 	// simulation time from time to fill road plus enough to get message across
 	g_simEndTime = (int)( (g_length/g_speed)*1000*1.10 );	// ten percent more
 	g_simEndTime += (int)(80*g_length); 	// conservative 80 seconds per kilometer [s/km]*[m] = ms
-	g_simEndTime *= (int)(0.0039/g_lambda);	// factor density
+	g_simEndTime = (int)(g_simEndTime*(0.0039/g_lambda));	// factor density
 
 	// Packet start time must be enough for the road to fill
 	int packetStart = (int)( ((g_length-g_margin)/5000)*200*1000 );
