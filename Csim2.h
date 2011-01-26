@@ -59,7 +59,7 @@ public:
 };
 
 void AdvanceVehicles(unsigned int delta);
-void AddPacket (unsigned int vehicleID, int packetID);
+void AddPacket (unsigned int vehicleID, int packetID, bool needsSort);
 void BroadcastPacket(unsigned int srcVehicleID, int packetID, bool needsSort);
 void ReBroadcastPackets(void);
 void DoStatistics(unsigned int srcVehicleID, int packetID);

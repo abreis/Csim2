@@ -73,7 +73,7 @@ int main(int argc, char* argv[])
 
 		// randomize first RSU position with a Uniform distribution
 		float startingRSUpos = unifgen();
-		cout << "\tFirst RSU pos \t" << startingRSUpos << '\n';
+		cout << "\tRSU1\t" << startingRSUpos << '\n';
 
 		// place RSUs
 		if(g_rsuDensity!=0)
@@ -97,7 +97,15 @@ int main(int argc, char* argv[])
 			while(accum < g_simEndTime) // fill event list with enough events
 			{
 				int expvalue = (int)expgen();	// get exponential value
-				accum+= (expvalue<5*(1000/(g_lambda*g_speed))) ? expvalue : (int)(5*(1000/(g_lambda*g_speed)) );	// crop expgen() to a maximum bound
+
+				// min jump is 100; expvalue<100 occurs very rarely
+				if(expvalue<100) expvalue=100;
+				// crop expgen() to a maximum bound
+				if(expvalue>=5*(1000/(g_lambda*g_speed))) expvalue=(5*(1000/(g_lambda*g_speed)) );
+
+				// increment the 'total time covered by events' accumulator
+				accum+= (int) expvalue;
+
 				simEvent eventWestVehicle ('V', accum, 0.0, 'W', ++g_vID);	// type, time, position, direction, vID
 				eventList.push_back(eventWestVehicle);
 			}
@@ -169,7 +177,7 @@ int main(int argc, char* argv[])
 							break;
 						}
 						case 'P':
-							AddPacket(tempEvent.vehicleID, tempEvent.packetID);
+							AddPacket(tempEvent.vehicleID, tempEvent.packetID, true);
 							break;
 						default:
 							break;
@@ -206,8 +214,11 @@ void AdvanceVehicles(unsigned int delta)
     }
 }
 
-void AddPacket (unsigned int vehicleID, int packetID)
+void AddPacket (unsigned int vehicleID, int packetID, bool needsSort)
 {
+	// sort list of vehicles
+	if(needsSort) Vehicles.sort(vehiclePosCompare);
+
 	// move iter to desired vehicle ID
 	list<VanetVehicle>::iterator iter = Vehicles.begin();
 	while( iter->vehicleID != vehicleID ) iter++;
@@ -257,7 +268,7 @@ void BroadcastPacket(unsigned int srcVehicleID, int packetID, bool needsSort)
 	if( iterFW != Vehicles.end()) iterFW++;
 	while( iterFW->position <= srcPosition+250 && iterFW != Vehicles.end() )
 	{
-		AddPacket(iterFW->vehicleID, packetID);
+		AddPacket(iterFW->vehicleID, packetID, false);
 		iterFW++;
 	}
 
@@ -265,7 +276,7 @@ void BroadcastPacket(unsigned int srcVehicleID, int packetID, bool needsSort)
 	if( iterBW != Vehicles.begin()) iterBW--;
 	while( iterBW->position >= srcPosition-250 && iterBW != Vehicles.begin() )
 	{
-		AddPacket(iterBW->vehicleID, packetID);
+		AddPacket(iterBW->vehicleID, packetID, false);
 		iterBW--;
 	}
 
@@ -299,16 +310,16 @@ void DoStatistics(unsigned int srcVehicleID, int packetID)
 	// if this is the last vehicle, print logs and die
 	if(srcVehicleID == g_PacketEndVID)
 	{
-//		PrintStatistics();
+		PrintStatistics();
 		exit(1);
 	}
 
 	// regardless of this being a special case, we check here if this vehicle is part of an ongoing special case
+	if(statList.size()!=0)
 	{
-		list<reHealingTime>::iterator lastStat = statList.end();
-		if(lastStat->endTime<0) // there is a pending stat
-			if(srcVehicleID==lastStat->endVID)
-				lastStat->endTime=g_simTime;	// complete the stat
+		if(statList.back().endTime<0) // there is a pending stat
+			if(srcVehicleID==statList.back().endVID)
+				statList.back().endTime=g_simTime;	// complete the stat
 	}
 
 	// get our vehicle
@@ -379,12 +390,13 @@ void DoStatistics(unsigned int srcVehicleID, int packetID)
     				{
     					if(iterMovable->direction=='W')
     						{ endVID=iterMovable->vehicleID; break; }
-    					iterMovable++;
+    					iterMovable--;
     				}
     			}
 
 				// add logging and commit
     			reHealingTime newCase(caseType, g_simTime, iter->vehicleID, endVID); // type, start time, startVID, endVID
+    			statList.push_back(newCase);
 
     		}	// END isLastVehicle
     	}	// END dir=W & pos<startVehPos
@@ -418,11 +430,18 @@ void PrintStatistics(void)
 	}
 
 	cout
-		<< "INFO best count " << bestCount << '\n'
-		<< "INFO worst count " << worstCount << '\n'
-		<< "INFO total best " << totalBest << '\n'
-		<< "INFO total worst " << totalWorst << '\n'
-		<< "INFO total rehealing " << totalBest+totalWorst << '\n';
+		<< "INFO best count " << bestCount
+			<< " total " << totalBest
+			<< " mean " << (totalBest/bestCount)
+			<< '\n'
+		<< "INFO worst count " << worstCount
+			<< " total " << totalWorst
+			<< " mean " << (totalWorst/worstCount)
+			<< '\n'
+		<< "INFO rehealing count " << (bestCount+worstCount)
+			<< " total " << (totalBest+totalWorst)
+			<< " mean " << ( (totalBest+totalWorst)/(bestCount+worstCount) )
+			<< '\n';
 
 }
 
