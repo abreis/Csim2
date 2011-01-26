@@ -307,19 +307,19 @@ void ReBroadcastPackets(void)
 
 void DoStatistics(unsigned int srcVehicleID, int packetID)
 {
-	// if this is the last vehicle, print logs and die
-	if(srcVehicleID == g_PacketEndVID)
-	{
-		PrintStatistics();
-		exit(1);
-	}
-
 	// regardless of this being a special case, we check here if this vehicle is part of an ongoing special case
 	if(statList.size()!=0)
 	{
 		if(statList.back().endTime<0) // there is a pending stat
 			if(srcVehicleID==statList.back().endVID)
 				statList.back().endTime=g_simTime;	// complete the stat
+	}
+
+	// if this is the last vehicle, print logs and die
+	if(srcVehicleID == g_PacketEndVID)
+	{
+		PrintStatistics();
+		exit(1);
 	}
 
 	// get our vehicle
