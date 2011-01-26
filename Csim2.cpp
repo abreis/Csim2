@@ -432,15 +432,15 @@ void PrintStatistics(void)
 	cout
 		<< "INFO best count " << bestCount
 			<< " total " << totalBest
-			<< " mean " << (totalBest/bestCount)
+			<< " mean " << ( (bestCount==0)?0:(totalBest/bestCount) )
 			<< '\n'
 		<< "INFO worst count " << worstCount
 			<< " total " << totalWorst
-			<< " mean " << (totalWorst/worstCount)
+			<< " mean " << ( (worstCount==0)?0:(totalWorst/worstCount) )
 			<< '\n'
 		<< "INFO rehealing count " << (bestCount+worstCount)
 			<< " total " << (totalBest+totalWorst)
-			<< " mean " << ( (totalBest+totalWorst)/(bestCount+worstCount) )
+			<< " mean " << ( ((bestCount+worstCount)==0)?0:( (totalBest+totalWorst)/(bestCount+worstCount) ) )
 			<< '\n';
 
 }
