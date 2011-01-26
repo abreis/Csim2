@@ -101,7 +101,7 @@ int main(int argc, char* argv[])
 				// min jump is 100; expvalue<100 occurs very rarely
 				if(expvalue<100) expvalue=100;
 				// crop expgen() to a maximum bound
-				if(expvalue>=5*(1000/(g_lambda*g_speed))) expvalue=(5*(1000/(g_lambda*g_speed)) );
+				if(expvalue>=5*(1000/(g_lambda*g_speed))) expvalue=(int)(5*(1000/(g_lambda*g_speed)) );
 
 				// increment the 'total time covered by events' accumulator
 				accum+= (int) expvalue;
