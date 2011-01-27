@@ -29,7 +29,7 @@ int main(int argc, char* argv[])
 	g_simEndTime = (int)(g_simEndTime*(0.0039/g_lambda));	// factor density
 
 	// Packet start time must be enough for the road to fill
-	int packetStart = (int)( ((g_length-g_margin)/5000)*200*1000 );
+	g_packetStart = (unsigned int)( ((g_length-g_margin)/5000)*200*1000 );
 
 	cout << fixed << setprecision(4);
 
@@ -39,7 +39,7 @@ int main(int argc, char* argv[])
 			"\n\tRange \t" << g_rrange <<
 			"\n\tLambda \t" << g_lambda <<
 			"\n\tStep \t" << g_step <<
-			"\n\tStart \t" << packetStart <<
+			"\n\tStart \t" << g_packetStart <<
 			"\n\tEnd \t" << g_simEndTime <<
 			"\n\tSeed \t" << g_seed <<
 			'\n';
@@ -59,16 +59,16 @@ int main(int argc, char* argv[])
 
 	// Initial vehicle, RSU, packet setup
 	{
-		simEvent eventEndV ('V', packetStart, g_margin/2, 'W', ++g_vID);	// type, time, position, direction, vID
+		simEvent eventEndV ('V', g_packetStart, g_margin/2, 'W', ++g_vID);	// type, time, position, direction, vID
 		g_PacketEndVID=g_vID;	// this vehicle is the packet's destination
-		simEvent eventStartV ('V', packetStart, g_length-g_margin/2, 'W', ++g_vID);	// type, time, position, direction, vID
+		simEvent eventStartV ('V', g_packetStart, g_length-g_margin/2, 'W', ++g_vID);	// type, time, position, direction, vID
 		g_PacketStartVID=g_vID;	// this vehicle starts the packet
 
 		eventList.push_back(eventEndV);
 		eventList.push_back(eventStartV);
 
 		// Schedule creation of first packet
-		simEvent packetEvent1 ('P', packetStart, g_PacketStartVID, 1); 	// type, time, vID, pID
+		simEvent packetEvent1 ('P', g_packetStart, g_PacketStartVID, 1); 	// type, time, vID, pID
 		eventList.push_back(packetEvent1);
 
 		// randomize first RSU position with a Uniform distribution
@@ -114,26 +114,6 @@ int main(int argc, char* argv[])
 		}
 
 		// no eastbound vehicles for the connected RSU model
-//		// fill list with EAST-bound vehicles
-//		{
-//			int accum = 0;
-//			while(accum < g_simEndTime) // fill event list with enough events
-//			{
-//				int expvalue = (int)expgen();	// get exponential value
-//				cout << "INFO exponential E " <<  expvalue << '\n';
-//
-//				// min jump is 100; expvalue<100 occurs very rarely
-//				if(expvalue<100) expvalue=100;
-//				// crop expgen() to a maximum bound
-//				if(expvalue>=5*(1000/(g_lambda*g_speed))) expvalue=(int)(5*(1000/(g_lambda*g_speed)) );
-//
-//				// increment the 'total time covered by events' accumulator
-//				accum+= (int) expvalue;
-//
-//				simEvent eventEastVehicle ('V', accum, g_length, 'E', ++g_vID);	// type, time, position, direction, vID
-//				eventList.push_back(eventEastVehicle);
-//			}
-//		}
 	}
 
 	// Sort event list
@@ -253,7 +233,13 @@ void AddPacket (unsigned int vehicleID, int packetID, bool needsSort)
     	// log 'P' event
     	cout << "LOG " << ((float)g_simTime)/1000.0 << " P " << iter->vehicleID << ' ' << iter->position << ' ' << packetID << '\n';
 
-    	// TODO: if srcVehicleID is an RSU, add the packet to all the other RSUs (careful with recursiveness)
+    	if(iter->direction=='R')
+    		for(list<VanetVehicle>::iterator iterRSU = Vehicles.begin(); iterRSU!=Vehicles.end(); iterRSU++ )
+    		{
+    			if(iterRSU->direction=='R' && iterRSU->vehicleID!=iter->vehicleID)
+    				AddPacket(iterRSU->vehicleID, packetID, false);
+    		}
+
 
     	// see if it is a special case, and count
     	DoStatistics(vehicleID, packetID);
@@ -322,142 +308,17 @@ void ReBroadcastPackets(void)
 
 void DoStatistics(unsigned int srcVehicleID, int packetID)
 {
-	// regardless of this being a special case, we check here if this vehicle is part of an ongoing special case
-	if(statList.size()!=0)
-	{
-		if(statList.back().endTime<0) // there is a pending stat
-			if(srcVehicleID==statList.back().endVID)
-				statList.back().endTime=g_simTime;	// complete the stat
-	}
-
 	// if this is the last vehicle, print logs and die
 	if(srcVehicleID == g_PacketEndVID)
 	{
 		PrintStatistics();
 		exit(1);
 	}
-
-	// get our vehicle
-	list<VanetVehicle>::iterator iterVolatile = Vehicles.begin();
-	while( iterVolatile->vehicleID != srcVehicleID ) iterVolatile++;
-	// const-ify the iterator to make sure no mess occurs down the road
-	const list<VanetVehicle>::iterator iter = iterVolatile;
-
-	// 1st step: see if the vehicle is 'W' and is disconnected from the next vehicle
-	{
-		// get the position of the first vehicle (those in front of it do not count)
-    	list<VanetVehicle>::iterator startVeh = Vehicles.begin();
-    	while( startVeh->vehicleID != g_PacketStartVID ) startVeh++;
-
-    	// V is in the lane of interest lane, V is behind the starting vehicle
-    	if(iter->direction == 'W' && iter->position <= startVeh->position)
-    	{
-    		// verify if it is last vehicle in cluster
-    		bool isLastVehicle = true;
-
-    		{	// locate backward
-				list<VanetVehicle>::iterator iterBW = iter;
-				if( iterBW != Vehicles.begin()) iterBW--;	// sanity check
-				while( iterBW->position >= iter->position-250 && iterBW != Vehicles.begin() )
-				{
-					if(iterBW->direction == 'W')
-						{isLastVehicle=false; break;}	// found a vehicle
-					iterBW--;	// did not find a vehicle, move
-				}
-    		}
-
-    		// if this vehicle is disconnected, the delay measures start here
-    		if(isLastVehicle)
-    		{
-    			// Determine type (best/worst)
-    			char caseType='W';	// default is no opposite-lane vehicle, thus worst
-
-    			{
-					list<VanetVehicle>::iterator iterFW = iter, iterBW = iter;
-					// locate forward
-					if( iterFW != Vehicles.end()) iterFW++;
-					while( iterFW->position <= iter->position+250 && iterFW != Vehicles.end() )
-					{
-						if( (iterFW->direction=='E') )
-							{ caseType = 'B'; break; }
-						iterFW++;
-					}
-
-					// locate backward
-					if(caseType=='W')	// no need to locate backward if we already found one forward
-					{
-						if( iterBW != Vehicles.begin()) iterBW--;
-						while( iterBW->position >= iter->position-250 && iterBW != Vehicles.begin() )
-						{
-							if( (iterBW->direction=='E') )
-								{ caseType = 'B'; break; }
-							iterBW--;
-						}
-					}
-				}
-
-    			// Determine end vehicle for this case
-    			unsigned int endVID=0;
-    			{
-    				list<VanetVehicle>::iterator iterMovable = iter;	// get a mutable iterator
-    				if( iterMovable != Vehicles.begin()) iterMovable--;	// sanity check
-    				while( iterMovable != Vehicles.begin() )
-    				{
-    					if(iterMovable->direction=='W')
-    						{ endVID=iterMovable->vehicleID; break; }
-    					iterMovable--;
-    				}
-    			}
-
-				// add logging and commit
-    			reHealingTime newCase(caseType, g_simTime, iter->vehicleID, endVID); // type, start time, startVID, endVID
-    			statList.push_back(newCase);
-
-    		}	// END isLastVehicle
-    	}	// END dir=W & pos<startVehPos
-	}
 }
 
 void PrintStatistics(void)
 {
-	// go through the list of stats, print all, average and sum
-	for( list<reHealingTime>::iterator itTr = statList.begin(); itTr != statList.end(); ++itTr )
-	{
-		// show all best-cases, worst cases
-		cout << "INFO"
-				<<" case " << ( (itTr->type=='B')?"best":"worst" )
-				<< " startVID " << itTr->startVID
-				<< " endVID " << itTr->endVID
-				<< " startTime " << itTr->startTime
-				<< " endTime " << itTr->endTime
-				<< " delay " << (itTr->endTime - itTr->startTime)
-				<< '\n';
-	}
-
-	// sum all re-healing times and print
-	unsigned int totalBest=0, totalWorst=0, bestCount=0, worstCount=0;
-	for( list<reHealingTime>::iterator itTr = statList.begin(); itTr != statList.end(); ++itTr )
-	{
-		if(itTr->type=='B')
-			{ totalBest+=(itTr->endTime - itTr->startTime); bestCount++; }
-		else
-			{ totalWorst+=(itTr->endTime - itTr->startTime); worstCount++; }
-	}
-
-	cout
-		<< "INFO best count " << bestCount
-			<< " total " << totalBest
-			<< " mean " << ( (bestCount==0)?0:(totalBest/bestCount) )
-			<< '\n'
-		<< "INFO worst count " << worstCount
-			<< " total " << totalWorst
-			<< " mean " << ( (worstCount==0)?0:(totalWorst/worstCount) )
-			<< '\n'
-		<< "INFO rehealing count " << (bestCount+worstCount)
-			<< " total " << (totalBest+totalWorst)
-			<< " mean " << ( ((bestCount+worstCount)==0)?0:( (totalBest+totalWorst)/(bestCount+worstCount) ) )
-			<< '\n';
-
+	cout << "INFO simulation endtime " << g_simTime << " start " << g_packetStart << " delay " << (g_simTime-g_packetStart)  << '\n';
 }
 
 bool eventCompare (simEvent event1, simEvent event2)
