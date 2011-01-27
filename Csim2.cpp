@@ -374,7 +374,7 @@ void DoStatistics(unsigned int srcVehicleID, int packetID)
 						if( iterBW != Vehicles.begin()) iterBW--;
 						while( iterBW->position >= iter->position-250 && iterBW != Vehicles.begin() )
 						{
-							if( (iterFW->direction=='E') )
+							if( (iterBW->direction=='E') )
 								{ caseType = 'B'; break; }
 							iterBW--;
 						}
