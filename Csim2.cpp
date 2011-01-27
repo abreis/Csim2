@@ -112,26 +112,28 @@ int main(int argc, char* argv[])
 				eventList.push_back(eventWestVehicle);
 			}
 		}
-		// fill list with EAST-bound vehicles
-		{
-			int accum = 0;
-			while(accum < g_simEndTime) // fill event list with enough events
-			{
-				int expvalue = (int)expgen();	// get exponential value
-				cout << "INFO exponential E " <<  expvalue << '\n';
 
-				// min jump is 100; expvalue<100 occurs very rarely
-				if(expvalue<100) expvalue=100;
-				// crop expgen() to a maximum bound
-				if(expvalue>=5*(1000/(g_lambda*g_speed))) expvalue=(int)(5*(1000/(g_lambda*g_speed)) );
-
-				// increment the 'total time covered by events' accumulator
-				accum+= (int) expvalue;
-
-				simEvent eventEastVehicle ('V', accum, g_length, 'E', ++g_vID);	// type, time, position, direction, vID
-				eventList.push_back(eventEastVehicle);
-			}
-		}
+		// no eastbound vehicles for the connected RSU model
+//		// fill list with EAST-bound vehicles
+//		{
+//			int accum = 0;
+//			while(accum < g_simEndTime) // fill event list with enough events
+//			{
+//				int expvalue = (int)expgen();	// get exponential value
+//				cout << "INFO exponential E " <<  expvalue << '\n';
+//
+//				// min jump is 100; expvalue<100 occurs very rarely
+//				if(expvalue<100) expvalue=100;
+//				// crop expgen() to a maximum bound
+//				if(expvalue>=5*(1000/(g_lambda*g_speed))) expvalue=(int)(5*(1000/(g_lambda*g_speed)) );
+//
+//				// increment the 'total time covered by events' accumulator
+//				accum+= (int) expvalue;
+//
+//				simEvent eventEastVehicle ('V', accum, g_length, 'E', ++g_vID);	// type, time, position, direction, vID
+//				eventList.push_back(eventEastVehicle);
+//			}
+//		}
 	}
 
 	// Sort event list
@@ -250,6 +252,8 @@ void AddPacket (unsigned int vehicleID, int packetID, bool needsSort)
 
     	// log 'P' event
     	cout << "LOG " << ((float)g_simTime)/1000.0 << " P " << iter->vehicleID << ' ' << iter->position << ' ' << packetID << '\n';
+
+    	// TODO: if srcVehicleID is an RSU, add the packet to all the other RSUs (careful with recursiveness)
 
     	// see if it is a special case, and count
     	DoStatistics(vehicleID, packetID);
