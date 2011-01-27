@@ -98,6 +98,8 @@ int main(int argc, char* argv[])
 			{
 				int expvalue = (int)expgen();	// get exponential value
 
+				cout << "INFO exponential W " <<  expvalue << '\n';
+
 				// min jump is 100; expvalue<100 occurs very rarely
 				if(expvalue<100) expvalue=100;
 				// crop expgen() to a maximum bound
@@ -116,7 +118,16 @@ int main(int argc, char* argv[])
 			while(accum < g_simEndTime) // fill event list with enough events
 			{
 				int expvalue = (int)expgen();	// get exponential value
-				accum+=(expvalue<5*(1000/(g_lambda*g_speed))) ? expvalue : (int)(5*(1000/(g_lambda*g_speed)) );
+				cout << "INFO exponential E " <<  expvalue << '\n';
+
+				// min jump is 100; expvalue<100 occurs very rarely
+				if(expvalue<100) expvalue=100;
+				// crop expgen() to a maximum bound
+				if(expvalue>=5*(1000/(g_lambda*g_speed))) expvalue=(int)(5*(1000/(g_lambda*g_speed)) );
+
+				// increment the 'total time covered by events' accumulator
+				accum+= (int) expvalue;
+
 				simEvent eventEastVehicle ('V', accum, g_length, 'E', ++g_vID);	// type, time, position, direction, vID
 				eventList.push_back(eventEastVehicle);
 			}
