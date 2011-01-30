@@ -29,7 +29,8 @@ int main(int argc, char* argv[])
 	g_simEndTime = (int)(g_simEndTime*(0.0039/g_lambda));	// factor density
 
 	// Packet start time must be enough for the road to fill
-	int packetStart = (int)( ((g_length-g_margin)/5000)*200*1000 );
+//	int packetStart = (int)( ((g_length-g_margin)/5000)*200*1000 );
+	int packetStart = (int)( ((g_length)/5000)*200*1000 );
 
 	cout << fixed << setprecision(4);
 
@@ -59,18 +60,6 @@ int main(int argc, char* argv[])
 
 	// Initial vehicle, RSU, packet setup
 	{
-		simEvent eventEndV ('V', packetStart, g_margin/2, 'W', ++g_vID);	// type, time, position, direction, vID
-		g_PacketEndVID=g_vID;	// this vehicle is the packet's destination
-		simEvent eventStartV ('V', packetStart, g_length-g_margin/2, 'W', ++g_vID);	// type, time, position, direction, vID
-		g_PacketStartVID=g_vID;	// this vehicle starts the packet
-
-		eventList.push_back(eventEndV);
-		eventList.push_back(eventStartV);
-
-		// Schedule creation of first packet
-		simEvent packetEvent1 ('P', packetStart, g_PacketStartVID, 1); 	// type, time, vID, pID
-		eventList.push_back(packetEvent1);
-
 		// randomize first RSU position with a Uniform distribution
 		float startingRSUpos = unifgen();
 		cout << "\tRSU1\t" << startingRSUpos << '\n';
@@ -135,6 +124,69 @@ int main(int argc, char* argv[])
 	}
 
 	// Sort event list
+	eventList.sort(eventCompare);
+
+
+	// Find the vehicles nearest to gmargin/2 (end) and (glength-gmargin/2) (start)
+	{
+		// times
+			// at time=packetStart, the vehicle closest to gmargin/2 is the one created at
+		int dstPacketTimeMark=packetStart-1000*(g_margin/2)/g_speed;
+		int srcPacketTimeMark=packetStart-1000*(g_length-g_margin/2)/g_speed;
+		int srcPacketPosition=0, dstPacketPosition=0;
+
+		{
+			list<simEvent>::iterator itMark = eventList.begin();
+			// move to the first vehicle @ time >=dstPacketTimeMark
+			for(; itMark != eventList.end() && itMark->time<dstPacketTimeMark; itMark++);
+
+			if(itMark->direction!='W')
+			{
+				int jump=1, power=2;
+				while(itMark->direction!='W')
+				{
+					// now jump +1,-1,+2,-2,... until direction=='W'
+					if(jump>0) for(int i=0; i!=jump && itMark!=eventList.end(); i++) itMark++;
+					if(jump<0) for(int i=0; i!=jump && itMark!=eventList.begin(); i--) itMark--;
+
+					jump=power*pow(-1.0,power+1); power++;
+				}
+			}
+			g_PacketEndVID=itMark->vehicleID;	// this vehicle is the packet's destination
+			dstPacketPosition=g_speed*(packetStart - itMark->time)/1000;
+		}
+
+		{
+			list<simEvent>::iterator itMark = eventList.begin();
+			// move to the first vehicle @ time >=srcPacketTimeMark
+			for(; itMark != eventList.end() && itMark->time<srcPacketTimeMark; itMark++);
+
+			if(itMark->direction!='W')
+			{
+				int jump=1, power=2;
+				while(itMark->direction!='W')
+				{
+					// now jump +1,-1,+2,-2,... until direction=='W'
+					if(jump>0) for(int i=0; i!=jump; i++) itMark++;
+					if(jump<0) for(int i=0; i!=jump; i--) itMark--;
+
+					jump=power*pow(-1.0,power+1); power++;
+				}
+			}
+			g_PacketStartVID=itMark->vehicleID;	// this vehicle is the packet source
+			srcPacketPosition=g_speed*(packetStart - itMark->time)/1000;
+		}
+
+		cout << "\tDEBUG dstTime " << dstPacketTimeMark << " vehicle picked " << g_PacketEndVID << '\n';
+		cout << "\tDEBUG srcTime " << srcPacketTimeMark << " vehicle picked " << g_PacketStartVID << '\n';
+		cout << "\tDEBUG distance betweet SRC and DST: " << (srcPacketPosition-dstPacketPosition) << '\n';
+
+		// Schedule creation of first packet
+		simEvent packetEvent1 ('P', packetStart, g_PacketStartVID, 1); 	// type, time, vID, pID
+		eventList.push_back(packetEvent1);
+	}
+
+	// Re-sort event list (new entry added)
 	eventList.sort(eventCompare);
 
 	// Print event list
