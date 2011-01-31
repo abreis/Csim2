@@ -129,10 +129,10 @@ int main(int argc, char* argv[])
 	// Find the vehicles nearest to gmargin/2 (end) and (glength-gmargin/2) (start)
 	{
 		// times
-			// at time=packetStart, the vehicle closest to gmargin/2 is the one created at
+			// at time=g_packetStart, the vehicle closest to gmargin/2 is the one created at
 		int dstPacketTimeMark=packetStart-1000*(g_margin/2)/g_speed;
 		int srcPacketTimeMark=packetStart-1000*(g_length-g_margin/2)/g_speed;
-		int srcPacketPosition=0, dstPacketPosition=0;
+		int srcPacketRealTime=0, dstPacketRealTime=0;
 
 		{
 			list<simEvent>::iterator itMark = eventList.begin();
@@ -152,7 +152,7 @@ int main(int argc, char* argv[])
 				}
 			}
 			g_PacketEndVID=itMark->vehicleID;	// this vehicle is the packet's destination
-			dstPacketPosition=g_speed*(packetStart - itMark->time)/1000;
+			dstPacketRealTime=itMark->time;
 		}
 
 		{
@@ -173,12 +173,12 @@ int main(int argc, char* argv[])
 				}
 			}
 			g_PacketStartVID=itMark->vehicleID;	// this vehicle is the packet source
-			srcPacketPosition=g_speed*(packetStart - itMark->time)/1000;
+			srcPacketRealTime=itMark->time;
 		}
 
-		cout << "\tDEBUG dstTime " << dstPacketTimeMark << " vehicle picked " << g_PacketEndVID << '\n';
-		cout << "\tDEBUG srcTime " << srcPacketTimeMark << " vehicle picked " << g_PacketStartVID << '\n';
-		cout << "\tDEBUG distance betweet SRC and DST: " << (srcPacketPosition-dstPacketPosition) << '\n';
+		cout << "\tDEBUG dstTime " << dstPacketTimeMark << " real " << dstPacketRealTime << " vehicle picked " << g_PacketEndVID << '\n';
+		cout << "\tDEBUG srcTime " << srcPacketTimeMark << " real " << srcPacketRealTime << " vehicle picked " << g_PacketStartVID << '\n';
+		cout << "\tDEBUG distance betweet SRC and DST: " << (int)(g_speed*( (float)(dstPacketRealTime-srcPacketRealTime)/1000.0 )) << '\n';
 
 		// Schedule creation of first packet
 		simEvent packetEvent1 ('P', packetStart, g_PacketStartVID, 1); 	// type, time, vID, pID
