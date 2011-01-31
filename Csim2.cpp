@@ -29,7 +29,7 @@ int main(int argc, char* argv[])
 	g_simEndTime = (int)(g_simEndTime*(0.0039/g_lambda));	// factor density
 
 	// Packet start time must be enough for the road to fill
-	int packetStart = (int)( ((g_length)/5000)*200*1000 );
+	g_packetStart = (int)( ((g_length)/5000)*200*1000 );
 
 	cout << fixed << setprecision(4);
 
@@ -39,7 +39,7 @@ int main(int argc, char* argv[])
 			"\n\tRange \t" << g_rrange <<
 			"\n\tLambda \t" << g_lambda <<
 			"\n\tStep \t" << g_step <<
-			"\n\tStart \t" << packetStart <<
+			"\n\tStart \t" << g_packetStart <<
 			"\n\tEnd \t" << g_simEndTime <<
 			"\n\tSeed \t" << g_seed <<
 			'\n';
@@ -130,8 +130,8 @@ int main(int argc, char* argv[])
 	{
 		// times
 			// at time=g_packetStart, the vehicle closest to gmargin/2 is the one created at
-		int dstPacketTimeMark=packetStart-1000*(g_margin/2)/g_speed;
-		int srcPacketTimeMark=packetStart-1000*(g_length-g_margin/2)/g_speed;
+		int dstPacketTimeMark=g_packetStart-1000*(g_margin/2)/g_speed;
+		int srcPacketTimeMark=g_packetStart-1000*(g_length-g_margin/2)/g_speed;
 		int srcPacketRealTime=0, dstPacketRealTime=0;
 
 		{
@@ -181,7 +181,7 @@ int main(int argc, char* argv[])
 		cout << "\tDEBUG distance betweet SRC and DST: " << (int)(g_speed*( (float)(dstPacketRealTime-srcPacketRealTime)/1000.0 )) << '\n';
 
 		// Schedule creation of first packet
-		simEvent packetEvent1 ('P', packetStart, g_PacketStartVID, 1); 	// type, time, vID, pID
+		simEvent packetEvent1 ('P', g_packetStart, g_PacketStartVID, 1); 	// type, time, vID, pID
 		eventList.push_back(packetEvent1);
 	}
 
