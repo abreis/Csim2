@@ -29,7 +29,6 @@ int main(int argc, char* argv[])
 	g_simEndTime = (int)(g_simEndTime*(0.0039/g_lambda));	// factor density
 
 	// Packet start time must be enough for the road to fill
-//	int packetStart = (int)( ((g_length-g_margin)/5000)*200*1000 );
 	int packetStart = (int)( ((g_length)/5000)*200*1000 );
 
 	cout << fixed << setprecision(4);
