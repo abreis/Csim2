@@ -130,8 +130,8 @@ int main(int argc, char* argv[])
 	{
 		// times
 			// at time=g_packetStart, the vehicle closest to gmargin/2 is the one created at
-		int dstPacketTimeMark=g_packetStart-1000*(g_margin/2)/g_speed;
-		int srcPacketTimeMark=g_packetStart-1000*(g_length-g_margin/2)/g_speed;
+		int dstPacketTimeMark=(int)(g_packetStart-1000*(g_margin/2)/g_speed);
+		int srcPacketTimeMark=(int)(g_packetStart-1000*(g_length-g_margin/2)/g_speed);
 		int srcPacketRealTime=0, dstPacketRealTime=0;
 
 		{
@@ -148,7 +148,7 @@ int main(int argc, char* argv[])
 					if(jump>0) for(int i=0; i!=jump && itMark!=eventList.end(); i++) itMark++;
 					if(jump<0) for(int i=0; i!=jump && itMark!=eventList.begin(); i--) itMark--;
 
-					jump=power*pow(-1.0,power+1); power++;
+					jump=(int)(power*pow(-1.0,power+1)); power++;
 				}
 			}
 			g_PacketEndVID=itMark->vehicleID;	// this vehicle is the packet's destination
@@ -169,7 +169,7 @@ int main(int argc, char* argv[])
 					if(jump>0) for(int i=0; i!=jump; i++) itMark++;
 					if(jump<0) for(int i=0; i!=jump; i--) itMark--;
 
-					jump=power*pow(-1.0,power+1); power++;
+					jump=(int)(power*pow(-1.0,power+1)); power++;
 				}
 			}
 			g_PacketStartVID=itMark->vehicleID;	// this vehicle is the packet source
