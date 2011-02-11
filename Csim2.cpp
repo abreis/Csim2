@@ -254,7 +254,7 @@ void AdvanceVehicles(unsigned int delta)
         	iter->position -= ( (float)delta/1000 * g_speed ); 		// time is in ms
 
     	if(g_simTime%(10*1000)==0)	// log 'C' every x*1000 seconds
-    		cout << "LOG " << ((float)g_simTime)/1000.0 << " C " << iter->vehicleID << ' ' << iter->position << '\n';
+    		cout << "LOG " << ((float)g_simTime)/1000.0 << " C " << iter->vehicleID << ' ' << iter->position << " " << iter->direction << '\n';
     }
 }
 
@@ -359,6 +359,53 @@ void ReBroadcastPackets(void)
 
 void DoStatistics(unsigned int srcVehicleID, int packetID)
 {
+	/* DEBUG: test Pr[Cn=1]
+	 * output whether source vehicle is isolated or part of a cluster
+	 */
+	bool isCluster=false;
+	if(srcVehicleID==g_PacketStartVID)
+	{
+		// move iter to desired vehicle ID
+		list<VanetVehicle>::iterator iter = Vehicles.begin();
+		while( iter->vehicleID != srcVehicleID ) iter++;
+
+		list<VanetVehicle>::iterator iterJumper=iter; iterJumper++;
+		while(iterJumper->direction!='W') iterJumper++;	// go to next W vehicle
+		if(iterJumper->position-iter->position<=250)
+			isCluster=true;
+		else
+		{
+			iterJumper=iter; iterJumper--;
+			while(iterJumper->direction!='W') iterJumper--; // go to previous W vehicle
+			if(iter->position-iterJumper->position<=250) isCluster=true;
+		}
+
+		cout << "DEBUG iscluster " << (isCluster?1:0) << '\n';
+	}
+
+	/* DEBUG: test P[isolated vehicle is connected to RSU]
+	 * find next RSU (previous one is nextRSU.pos - g_rsuDensity)
+	 */
+	bool singleIsConnected=false;
+	if(!isCluster)
+	{
+		// move iter to desired vehicle ID
+		list<VanetVehicle>::iterator iter = Vehicles.begin();
+		while( iter->vehicleID != srcVehicleID ) iter++;
+
+		list<VanetVehicle>::iterator iterJumper=iter; iterJumper++;
+		while(iterJumper->direction!='R') iterJumper++;	// go to next RSU
+
+		// these two conditions match the next RSU's range of coverage and the previous RSU's range also
+		if( (iterJumper->position-iter->position) > (g_rsuDensity-g_rrange)
+			|| (iterJumper->position-iter->position) < g_rrange )
+				singleIsConnected=true;
+
+		cout << "DEBUG singleIsConnected " << (singleIsConnected?1:0) << '\n';
+
+	}
+
+
 	// if this is the last vehicle, print logs and die
 	if(srcVehicleID == g_PacketEndVID)
 	{
